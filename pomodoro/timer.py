@@ -37,7 +37,7 @@ class Clock(gobject.GObject):
     def start(self):
         """Start to emit ticks.
 
-        Raises:
+        Raise:
             ClockAlreadyStarted
         """
         if self.started is not None:
@@ -47,7 +47,7 @@ class Clock(gobject.GObject):
     def stop(self):
         """Stop to emit ticks.
 
-        Raises:
+        Raise:
             ClockNotStarted.
         """
         if self.started is None:
@@ -60,3 +60,41 @@ class Clock(gobject.GObject):
         """
         self.emit('tick')
         return True
+
+
+class Timer(gobject.GObject):
+    """Count incoming ticks and emit a signals.
+    """
+
+    __gsignals__ = {
+        'fire': (gobject.SIGNAL_RUN_FIRST, None, ()),
+    }
+
+    def __init__(self, ticks):
+        """Initializer.
+
+        Keywords:
+            ticks how many ticks to wait before to emit the signal.
+
+        Raise:
+            ValueError
+        """
+        super(Timer, self).__init__()
+
+        if ticks <= 0:
+            raise ValueError("Param `ticks' should be greater than 0.")
+        self.ticks = ticks
+        self.count = 0
+
+    def tick(self):
+        """Increment the tick counter and emit a signal on overflow.
+        """
+        self.count += 1
+        if self.count == self.ticks:
+            self.emit('fire')
+            self.count = 0
+
+    def reset(self):
+        """Reset tick counter.
+        """
+        self.count = 0

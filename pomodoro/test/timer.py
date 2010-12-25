@@ -9,27 +9,61 @@ from pomodoro import timer
 
 class TestClockFunctions(unittest.TestCase):
 
-    def setUp(self):
-        self.clk = timer.Clock()
+    def test_init(self):
+        clk = timer.Clock()
+
+        self.assertTrue(clk.started is None)
 
     def test_start(self):
-        self.assertTrue(self.clk.started is None)
+        clk = timer.Clock()
 
-        self.clk.start()
-        self.assertTrue(self.clk.started != None)
+        clk.start()
+        self.assertTrue(clk.started != None)
 
-        self.assertRaises(timer.ClockAlreadyStarted, self.clk.start)
+        self.assertRaises(timer.ClockAlreadyStarted, clk.start)
 
     def test_stop(self):
-        self.clk.start()
-        self.clk.stop()
-        self.assertTrue(self.clk.started is None)
+        clk = timer.Clock()
 
-        self.assertRaises(timer.ClockNotStarted, self.clk.stop)
+        clk.start()
+        clk.stop()
+        self.assertTrue(clk.started is None)
+
+        self.assertRaises(timer.ClockNotStarted, clk.stop)
 
     def test_tick(self):
-        self.assertTrue(self.clk.tick())
+        clk = timer.Clock()
 
+        self.assertTrue(clk.tick())
+
+
+class TestTimerFunctions(unittest.TestCase):
+
+    def test_init(self):
+        t = timer.Timer(10)
+
+        self.assertEqual(t.ticks, 10)
+        self.assertEqual(t.count, 0)
+
+        self.assertRaises(ValueError, timer.Timer, 0)
+        self.assertRaises(ValueError, timer.Timer, -1)
+
+
+    def test_tick(self):
+        t = timer.Timer(10)
+
+        t.tick()
+        self.assertEqual(t.count, 1)
+
+        [t.tick() for i in xrange(9)]
+        self.assertEqual(t.count, 0)
+
+    def test_reset(self):
+        t = timer.Timer(10)
+
+        t.tick()
+        t.reset()
+        self.assertEqual(t.count, 0)
 
 
 if __name__ == '__main__':
