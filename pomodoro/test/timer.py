@@ -45,8 +45,8 @@ class TestTimerFunctions(unittest.TestCase):
         self.assertEqual(t.ticks, 10)
         self.assertEqual(t.count, 0)
 
-        self.assertRaises(ValueError, timer.Timer, 0)
-        self.assertRaises(ValueError, timer.Timer, -1)
+        self.assertRaises(timer.TicksValueError, timer.Timer, 0)
+        self.assertRaises(timer.TicksValueError, timer.Timer, -1)
 
 
     def test_tick(self):
@@ -63,7 +63,15 @@ class TestTimerFunctions(unittest.TestCase):
 
         t.tick()
         t.reset()
+        self.assertEqual(t.ticks, 10)
         self.assertEqual(t.count, 0)
+
+        t.reset(20)
+        self.assertEqual(t.ticks, 20)
+        self.assertEqual(t.count, 0)
+
+        self.assertRaises(timer.TicksValueError, t.reset, 0)
+        self.assertRaises(timer.TicksValueError, t.reset, -1)
 
 
 if __name__ == '__main__':

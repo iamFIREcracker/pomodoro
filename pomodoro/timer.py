@@ -28,8 +28,6 @@ class Clock(gobject.GObject):
     }
 
     def __init__(self):
-        """Initializer.
-        """
         super(Clock, self).__init__()
 
         self.started = None
@@ -62,6 +60,17 @@ class Clock(gobject.GObject):
         return True
 
 
+class TicksValueError(Exception):
+    """Raised when trying to set the number of ticks to a value not
+    greater than 0.
+    """
+
+    def __init__(self):
+        super(TicksValueError, self).__init__(
+            "Param `ticks' should be greater than 0."
+        )
+
+
 class Timer(gobject.GObject):
     """Count incoming ticks and emit a signals.
     """
@@ -82,7 +91,7 @@ class Timer(gobject.GObject):
         super(Timer, self).__init__()
 
         if ticks <= 0:
-            raise ValueError("Param `ticks' should be greater than 0.")
+            raise TicksValueError()
         self.ticks = ticks
         self.count = 0
 
@@ -94,7 +103,17 @@ class Timer(gobject.GObject):
             self.emit('fire')
             self.count = 0
 
-    def reset(self):
-        """Reset tick counter.
+    def reset(self, ticks=None):
+        """Reset tick counter and, optionally, the tick threshold.
+
+        Keywords:
+            ticks how many ticks to wait before to emit a signal.
+
+        Raise:
+            ValueError
         """
         self.count = 0
+        if ticks is not None:
+            if ticks <= 0:
+                raise TicksValueError()
+            self.ticks = ticks
