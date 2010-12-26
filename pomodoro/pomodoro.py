@@ -40,7 +40,7 @@ class Clock(gobject.GObject):
         """
         if self.started is not None:
             raise ClockAlreadyStarted()
-        self.started = gobject.timeout_add(1000, self.tick)
+        self.started = gobject.timeout_add(1000, self._tick)
 
     def stop(self):
         """Stop to emit ticks.
@@ -53,10 +53,11 @@ class Clock(gobject.GObject):
         gobject.source_remove(self.started)
         self.started = None
 
-    def tick(self):
+    def _tick(self):
         """Emit a `tick' signal.
         """
         self.emit('tick')
+
         return True
 
 
@@ -117,3 +118,80 @@ class Timer(gobject.GObject):
             if ticks <= 0:
                 raise TicksValueError()
             self.ticks = ticks
+
+
+class WrongTimerName(Exception):
+    """Raised when looking for a timer using a wrong name.
+    """
+
+    def __init__(self, name):
+        super(WrongTimerName, self).__init__(
+            "'%s' is not a valid timer name" % (name,)
+        )
+
+
+class CoreAlreadyStarted(Exception):
+    """Raised when users try to start a core object twice.
+    """
+
+
+class CoreNotYetStarted(Exception):
+    """Raised when `ticking' a core object not yet started.
+    """
+
+
+class Core(gobject.GObject):
+    """XXX
+    """
+
+    __gsignals__ = {
+        'new-phase': (gobject.SIGNAL_RUN_FIRST, None, (gobject.TYPE_PYOBJECT,))
+    }
+
+    def __init__(self):
+        super(Core, self).__init__()
+
+        self.timers = {'work': Timer(25),
+                       'break': Timer(5),
+                       'coffee': Timer(10)}
+        self.current = None
+        self.next_timer = self._next_timer()
+
+        for timer in self.timers.values():
+            timer.connect('fire', self.fire_cb)
+
+    def fire_cb(self, timer):
+        """Emit a signal to notify the beginning of a new phase.
+        """
+        self.current = next(self.next_timer)
+        self.emit('new-phase', self.current)
+
+    def _next_timer(self):
+        """Return the name of the next timer to activate.
+        """
+        while True:
+            for i in xrange(4):
+                yield 'work'
+                yield 'break' if i != 3 else 'coffee'
+
+    def start(self):
+        """Load a timer, and start to receive ticks.
+
+        Raise:
+            CoreAlreadyStarted
+        """
+        if self.current is not None:
+            raise CoreAlreadyStarted()
+        self.current = next(self.next_timer)
+
+    def tick(self):
+        """Route the tick to the active timer.
+
+        When a timer reach its limit, then we have to select the next one.
+
+        Raise:
+            CoreNotYetStarted
+        """
+        if self.current is None:
+            raise CoreNotYetStarted()
+        self.timers[self.current].tick()
