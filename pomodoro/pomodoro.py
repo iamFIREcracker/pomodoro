@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import gobject
+import gtk
 
 
 
@@ -120,16 +121,6 @@ class Timer(gobject.GObject):
             self.ticks = ticks
 
 
-class WrongTimerName(Exception):
-    """Raised when looking for a timer using a wrong name.
-    """
-
-    def __init__(self, name):
-        super(WrongTimerName, self).__init__(
-            "'%s' is not a valid timer name" % (name,)
-        )
-
-
 class CoreAlreadyStarted(Exception):
     """Raised when users try to start a core object twice.
     """
@@ -195,3 +186,43 @@ class Core(gobject.GObject):
         if self.current is None:
             raise CoreNotYetStarted()
         self.timers[self.current].tick()
+
+
+class FractionValueError(ValueError):
+    """Raised when users try to set a fraction with a value < 0 or > 1.
+    """
+
+    def __init__(self):
+        super(FractionValueError, self).__init__(
+                "Fraction value not in range [0.0, 1.0]."
+            )
+
+
+class UI(object):
+    """User interface.
+    """
+
+    def __init__(self):
+        self.window = gtk.Window()
+        self.window.set_title('Pomodoro')
+
+        self.progressbar = gtk.ProgressBar()
+
+        self.window.add(self.progressbar)
+        self.window.show_all()
+
+    @property
+    def text(self):
+        return self.progressbar.get_text()
+
+    def set_text(self, name):
+        self.progressbar.set_text("%s" % (name,))
+
+    @property
+    def fraction(self):
+        return self.progressbar.get_fraction()
+
+    def set_fraction(self, fraction):
+        if fraction < 0 or fraction > 1:
+            raise FractionValueError
+        self.progressbar.set_fraction(fraction)

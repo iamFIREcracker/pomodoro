@@ -117,6 +117,21 @@ class TestCoreFunctions(unittest.TestCase):
         self.assertEqual(c.current, 'break')
 
 
+class TestUIFunctions(unittest.TestCase):
+
+    def test_set_text(self):
+        ui = pomodoro.UI()
+
+        ui.set_text('foo')
+        self.assertEqual(ui.text, 'foo')
+
+    def test_set_fraction(self):
+        ui = pomodoro.UI()
+
+        ui.set_fraction(0.5)
+        self.assertEqual(ui.fraction, 0.5)
+
+
 
 if __name__ == '__main__':
     unittest.main()
