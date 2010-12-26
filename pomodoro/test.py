@@ -75,6 +75,8 @@ class TestCoreFunctions(unittest.TestCase):
         c = pomodoro.Core()
 
         self.assertTrue(c.current is None)
+        for timer in c.timers.values():
+            self.assertEqual(timer.count, 0)
 
     def test_next_timer(self):
         c = pomodoro.Core()
@@ -115,6 +117,19 @@ class TestCoreFunctions(unittest.TestCase):
 
         [c.tick() for i in xrange(25)]
         self.assertEqual(c.current, 'break')
+
+    def test_stop(self):
+        c = pomodoro.Core()
+
+        c.start()
+        c.tick()
+        c.tick()
+        c.stop()
+        self.assertTrue(c.current is None)
+        for timer in c.timers.values():
+            self.assertEqual(timer.count, 0)
+
+        self.assertRaises(pomodoro.CoreNotYetStarted, c.stop)
 
 
 class TestUIFunctions(unittest.TestCase):

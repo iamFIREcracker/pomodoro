@@ -174,6 +174,7 @@ class Core(gobject.GObject):
         if self.current is not None:
             raise CoreAlreadyStarted()
         self.current = next(self.next_timer)
+        self.emit('new-phase', self.current)
 
     def tick(self):
         """Route the tick to the active timer.
@@ -186,6 +187,17 @@ class Core(gobject.GObject):
         if self.current is None:
             raise CoreNotYetStarted()
         self.timers[self.current].tick()
+
+    def stop(self):
+        """Reset the current timer and set self.current to None.
+
+        Raise:
+            CoreNotYetStarted
+        """
+        if self.current is None:
+            raise CoreNotYetStarted()
+        self.timers[self.current].reset()
+        self.current = None
 
 
 class FractionValueError(ValueError):
@@ -201,6 +213,12 @@ class FractionValueError(ValueError):
 class UI(object):
     """User interface.
     """
+
+    __gsignals__ = {
+        'begin': (gobject.SIGNAL_RUN_FIRST, None, ()),
+        'end': (gobject.SIGNAL_RUN_FIRST, None, ()),
+        'close': (gobject.SIGNAL_RUN_FIRST, None, ()),
+    }
 
     def __init__(self):
         self.window = gtk.Window()
@@ -226,3 +244,31 @@ class UI(object):
         if fraction < 0 or fraction > 1:
             raise FractionValueError
         self.progressbar.set_fraction(fraction)
+
+
+#def _tick_cb(clk, core):
+    #core.tick()
+
+#def _new_phase_cb(core, name, ui):
+    #ui.set_text(name)
+
+#def _delete_cb(ui, mainloop):
+    #mainloop.quit()
+
+
+#def _main():
+    #mainloop = gobject.MainLoop()
+    #clk = Clock()
+    #core = Core()
+    #ui = UI()
+
+    #clk.connect('tick', _tick_cb, core)
+    #core.connect('new-phase', _new_phase_cb, ui)
+    #ui.connect('delete-event', _delete_cb, mainloop)
+    
+    #mainloop.run()
+
+
+
+#if __name__ == '__main__':
+    #_main()
