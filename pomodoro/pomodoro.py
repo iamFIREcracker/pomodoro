@@ -41,7 +41,7 @@ class Clock(gobject.GObject):
         """
         if self.started is not None:
             raise ClockAlreadyStarted()
-        self.started = gobject.timeout_add(1000, self._tick)
+        self.started = gobject.timeout_add(60000, self._tick)
 
     def stop(self):
         """Stop to emit ticks.
