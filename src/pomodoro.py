@@ -326,7 +326,7 @@ def _tick_cb(clk, core):
 def _phase_fraction_cb(core, name, count, ticks, ui):
     """Update the progress-bar with the new fraction value.
     """
-    (mins, secs) = _ticks_to_time(ticks - count)
+    (mins, secs) = ticks_to_time(ticks - count)
     ui.set_text("%s %sm:%ss" % (name, mins, secs))
     ui.set_fraction(count / ticks)
     if count == 0:
