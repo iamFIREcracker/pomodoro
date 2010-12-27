@@ -5,6 +5,7 @@ from __future__ import division
 
 import gobject
 import gtk
+#import gst
 
 
 TICK = 1 # in seconds
@@ -301,8 +302,17 @@ class UI(gobject.GObject):
         self.progressbar.set_fraction(fraction)
 
     def buzz(self):
-        self.window.show()
+        """Raise the window to catch the attention of the user.
+        """
+        self.window.window.show()
 
+
+#class Player(object):
+    #"""Audio player.
+    #"""
+
+    #def __init__(self):
+        
 
 
 def ticks_to_time(ticks):
