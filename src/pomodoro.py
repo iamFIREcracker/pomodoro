@@ -2,16 +2,20 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
+import sys
 
 import gobject
 import gtk
-#import gst
+import gst
 
 
-TICK = 1 # in seconds
+TICKS = 1 # number of ticks per second
 WORK = 25 * 60 # in seconds
 BREAK = 5 * 60 # in seconds
 COFFEE = 10 * 60 # in seconds
+
+BEEP = 'file://' + sys.path[0] + '/beep.wav'
+print BEEP
 
 
 
@@ -50,7 +54,7 @@ class Clock(gobject.GObject):
         """
         if self.started is not None:
             raise ClockAlreadyStarted()
-        self.started = gobject.timeout_add(TICK * 1000, self._tick)
+        self.started = gobject.timeout_add(1000 // TICKS, self._tick)
 
     def stop(self):
         """Stop to emit ticks.
@@ -133,11 +137,13 @@ class Timer(gobject.GObject):
 class CoreAlreadyStarted(Exception):
     """Raised when users try to start a core object twice.
     """
+    pass
 
 
 class CoreNotYetStarted(Exception):
     """Raised when `ticking' a core object not yet started.
     """
+    pass
 
 
 class Core(gobject.GObject):
@@ -153,9 +159,9 @@ class Core(gobject.GObject):
     def __init__(self):
         super(Core, self).__init__()
 
-        self.timers = {'work': Timer(WORK),
-                       'break': Timer(BREAK),
-                       'coffee': Timer(COFFEE)}
+        self.timers = {'work': Timer(WORK * TICKS),
+                       'break': Timer(BREAK * TICKS),
+                       'coffee': Timer(COFFEE * TICKS)}
         self.current = None
         self.next_timer = self._next_timer()
 
@@ -307,12 +313,66 @@ class UI(gobject.GObject):
         self.window.window.show()
 
 
-#class Player(object):
-    #"""Audio player.
-    #"""
+class PlayerError(Exception):
+    """Raised when something went wrong with the gst backend.
+    """
 
-    #def __init__(self):
-        
+    def __init__(self, error, debug):
+        super(PlayerError, self).__init__("%s %s" % (error, debug))
+
+
+class PlayerAlreadyStarted(Exception):
+    """Raised when users try to start a player more than once.
+    """
+    pass
+
+class PlayerNotYetStarted(Exception):
+    """Raised when users try to stop a player not yet started.
+    """
+    pass
+
+
+class Player(object):
+    """Audio player.
+    """
+
+    def __init__(self):
+        self.pipeline = gst.parse_launch("playbin2 uri=%s" % BEEP)
+
+        bus = self.pipeline.get_bus()
+        bus.add_signal_watch()
+        bus.connect('message', self._message_cb)
+
+        self.started = False
+
+    def _message_cb(self, bus, message):
+        """Handle a message received on the bus.
+
+        Raise:
+            PlayerError
+        """
+        if message.type == gst.MESSAGE_ERROR:
+            self.stop()
+            (err, debug) = message.parse_error()
+            raise PlayerError(err, debug)
+        elif message.type == gst.MESSAGE_EOS:
+            self.stop()
+
+    def start(self):
+        """Start to play the audio file.
+        """
+        if self.started:
+            raise PlayerAlreadyStarted()
+        self.pipeline.set_state(gst.STATE_PLAYING)
+        self.started = True
+
+    def stop(self):
+        """Stop to play the audio file.
+        """
+        if not self.started:
+            raise PlayerNotYetStarted()
+        self.pipeline.set_state(gst.STATE_READY)
+        self.started = False
 
 
 def ticks_to_time(ticks):
@@ -323,7 +383,7 @@ def ticks_to_time(ticks):
     """
     if ticks < 0:
         raise ValueError()
-    secs = ticks * TICK
+    secs = ticks // TICKS
     return divmod(secs, 60)
 
 
@@ -333,13 +393,17 @@ def _tick_cb(clk, core):
     core.tick()
 
 
-def _phase_fraction_cb(core, name, count, ticks, ui):
+def _phase_fraction_cb(core, name, count, ticks, ui, player):
     """Update the progress-bar with the new fraction value.
     """
     (mins, secs) = ticks_to_time(ticks - count)
     ui.set_text("%s %sm:%ss" % (name, mins, secs))
     ui.set_fraction(count / ticks)
     if count == 0:
+        try:
+            player.start()
+        except PlayerAlreadyStarted:
+            pass
         ui.buzz()
 
 
@@ -356,7 +420,7 @@ def _begin_cb(ui, core, clk):
         pass
 
 
-def _end_cb(ui, clk, core):
+def _end_cb(ui, clk, core, player):
     """Stop the clock first, and the core object second.
     """
     try:
@@ -367,15 +431,19 @@ def _end_cb(ui, clk, core):
         core.stop()
     except CoreNotYetStarted:
         pass
+    try:
+        player.stop()
+    except PlayerNotYetStarted:
+        pass
 
     ui.set_fraction(0.0)
     ui.set_text('')
 
 
-def _close_cb(ui, clk, core):
+def _close_cb(ui, clk, core, player):
     """Stop eventually active objects and quit the mainloop.
     """
-    _end_cb(ui, clk, core)
+    _end_cb(ui, clk, core, player)
 
     gtk.main_quit()
 
@@ -384,12 +452,13 @@ def _main():
     clk = Clock()
     core = Core()
     ui = UI()
+    player = Player()
 
     clk.connect('tick', _tick_cb, core)
-    core.connect('phase-fraction', _phase_fraction_cb, ui)
+    core.connect('phase-fraction', _phase_fraction_cb, ui, player)
     ui.connect('begin', _begin_cb, core, clk)
-    ui.connect('end', _end_cb, clk, core)
-    ui.connect('close', _close_cb, clk, core)
+    ui.connect('end', _end_cb, clk, core, player)
+    ui.connect('close', _close_cb, clk, core, player)
     
     gtk.main()
 

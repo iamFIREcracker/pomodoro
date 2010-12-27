@@ -149,6 +149,31 @@ class TestUIFunctions(unittest.TestCase):
         ui.buzz()
 
 
+class TestPlayerFunctions(unittest.TestCase):
+
+    def test_init(self):
+        p = pomodoro.Player()
+
+        self.assertEqual(p.started, False)
+
+    def test_start(self):
+        p = pomodoro.Player()
+
+        p.start()
+        self.assertEqual(p.started, True)
+
+        self.assertRaises(pomodoro.PlayerAlreadyStarted, p.start)
+
+    def test_stop(self):
+        p = pomodoro.Player()
+        
+        p.start()
+        p.stop()
+        self.assertEqual(p.started, False)
+
+        self.assertRaises(pomodoro.PlayerNotYetStarted, p.stop)
+
+
 class TestPomodoroFunctions(unittest.TestCase):
 
     def test_ticks_to_time(self):
