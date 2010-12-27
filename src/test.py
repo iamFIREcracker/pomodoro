@@ -78,18 +78,6 @@ class TestCoreFunctions(unittest.TestCase):
         for timer in c.timers.values():
             self.assertEqual(timer.count, 0)
 
-    def test_next_timer(self):
-        c = pomodoro.Core()
-
-        for i in xrange(4):
-            self.assertEqual(next(c.next_timer), 'work')
-            if i != 3:
-                self.assertEqual(next(c.next_timer), 'break')
-            else:
-                self.assertEqual(next(c.next_timer), 'coffee')
-
-        self.assertEqual(next(c.next_timer), 'work')
-
     def test_start(self):
         c = pomodoro.Core()
 
@@ -105,18 +93,22 @@ class TestCoreFunctions(unittest.TestCase):
 
         c.start()
         for i in xrange(4):
-            [c.tick() for j in xrange(25)]
+            [c.tick() for j in xrange(pomodoro.WORK)]
             if i != 3:
                 self.assertEqual(c.current, 'break')
-                [c.tick() for j in xrange(5)]
+                self.assertEqual(c.timers[c.current].count, 0)
+                [c.tick() for j in xrange(pomodoro.BREAK)]
             else:
                 self.assertEqual(c.current, 'coffee')
-                [c.tick() for j in xrange(10)]
+                self.assertEqual(c.timers[c.current].count, 0)
+                [c.tick() for j in xrange(pomodoro.COFFEE)]
 
             self.assertEqual(c.current, 'work')
+            self.assertEqual(c.timers[c.current].count, 0)
 
-        [c.tick() for i in xrange(25)]
+        [c.tick() for i in xrange(pomodoro.WORK)]
         self.assertEqual(c.current, 'break')
+        self.assertEqual(c.timers[c.current].count, 0)
 
     def test_stop(self):
         c = pomodoro.Core()
@@ -134,6 +126,9 @@ class TestCoreFunctions(unittest.TestCase):
 
 class TestUIFunctions(unittest.TestCase):
 
+    def test_init(self):
+        ui = pomodoro.UI()
+
     def test_set_text(self):
         ui = pomodoro.UI()
 
@@ -145,6 +140,22 @@ class TestUIFunctions(unittest.TestCase):
 
         ui.set_fraction(0.5)
         self.assertEqual(ui.fraction, 0.5)
+
+        self.assertRaises(pomodoro.FractionValueError, ui.set_fraction, -1)
+
+    def test_buzz(self):
+        ui = pomodoro.UI()
+
+        ui.buzz()
+
+
+class TestPomodoroFunctions(unittest.TestCase):
+
+    def test_ticks_to_time(self):
+        self.assertEqual(pomodoro.ticks_to_time(10), (0, 10))
+        self.assertEqual(pomodoro.ticks_to_time(61), (1, 1))
+
+        self.assertRaises(ValueError, pomodoro.ticks_to_time, -1)
 
 
 
