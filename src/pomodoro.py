@@ -15,7 +15,6 @@ BREAK = 5 * 60 # in seconds
 COFFEE = 10 * 60 # in seconds
 
 BEEP = 'file://' + sys.path[0] + '/beep.wav'
-print BEEP
 
 
 
