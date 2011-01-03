@@ -222,6 +222,17 @@ class Core(gobject.GObject):
         self.current = None
         self.next_timer = self._next_timer()
 
+    def skip(self):
+        """Skip the current pomodoro phase.
+
+        Raise:
+            CoreNotYetStarted
+        """
+        if self.current is None:
+            raise CoreNotYetStarted()
+        self.timers[self.current].reset()
+        self._fire_cb(self.timers[self.current])
+
 
 class FractionValueError(ValueError):
     """Raised when users try to set a fraction with a value < 0 or > 1.
@@ -240,6 +251,7 @@ class UI(gobject.GObject):
     __gsignals__ = {
         'begin': (gobject.SIGNAL_RUN_FIRST, None, ()),
         'end': (gobject.SIGNAL_RUN_FIRST, None, ()),
+        'skip': (gobject.SIGNAL_RUN_FIRST, None, ()),
         'close': (gobject.SIGNAL_RUN_FIRST, None, ()),
     }
 
@@ -260,16 +272,25 @@ class UI(gobject.GObject):
         stop_img = gtk.Image()
         stop_img.set_from_stock(gtk.STOCK_MEDIA_STOP,
                                 gtk.ICON_SIZE_LARGE_TOOLBAR)
+        skip_img = gtk.Image()
+        skip_img.set_from_stock(gtk.STOCK_MEDIA_NEXT,
+                                gtk.ICON_SIZE_LARGE_TOOLBAR)
         self.images = {'play': play_img,
-                       'stop': stop_img
+                       'stop': stop_img,
+                       'skip': skip_img
                       }
         [widget.show() for widget in self.images.values()]
 
-        self.button = gtk.Button()
-        self.button.add(self.images['play'])
-        self.button.connect('clicked', self._clicked_cb)
+        button = gtk.Button()
+        button.add(self.images['play'])
+        button.connect('clicked', self._clicked_cb)
+        self.hbox.pack_start(button, False, False)
 
-        self.hbox.pack_start(self.button, False, False)
+        button = gtk.Button()
+        button.add(self.images['skip'])
+        button.connect('clicked', self._clicked_cb)
+        self.hbox.pack_start(button, False, False)
+
         self.hbox.pack_start(self.progressbar)
         self.window.add(self.hbox)
         self.window.show_all()
@@ -283,13 +304,16 @@ class UI(gobject.GObject):
         """Emit begin/end event depeing on the button label.
         """
         for image in button.get_children():
-            button.remove(image)
-            if image == self.images['play']:
-                button.add(self.images['stop'])
-                self.emit('begin')
+            if image == self.images['skip']:
+                self.emit('skip')
             else:
-                button.add(self.images['play'])
-                self.emit('end')
+                button.remove(image)
+                if image == self.images['play']:
+                    button.add(self.images['stop'])
+                    self.emit('begin')
+                else:
+                    button.add(self.images['play'])
+                    self.emit('end')
 
     @property
     def text(self):
@@ -433,6 +457,19 @@ def _begin_cb(ui, core, clk):
         pass
 
 
+def _skip_cb(ui, core, player):
+    """Jump to the next pomodoro phase.
+    """
+    try:
+        core.skip()
+    except CoreNotYetStarted:
+        return
+    try:
+        player.start()
+    except PlayerAlreadyStarted:
+        pass
+
+
 def _end_cb(ui, clk, core, player):
     """Stop the clock first, and the core object second.
     """
@@ -470,6 +507,7 @@ def _main():
     clk.connect('tick', _tick_cb, core)
     core.connect('phase-fraction', _phase_fraction_cb, ui, player)
     ui.connect('begin', _begin_cb, core, clk)
+    ui.connect('skip', _skip_cb, core, player)
     ui.connect('end', _end_cb, clk, core, player)
     ui.connect('close', _close_cb, clk, core, player)
     

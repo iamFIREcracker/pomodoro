@@ -123,6 +123,20 @@ class TestCoreFunctions(unittest.TestCase):
 
         self.assertRaises(pomodoro.CoreNotYetStarted, c.stop)
 
+    def test_skip(self):
+        c = pomodoro.Core()
+
+        self.assertRaises(pomodoro.CoreNotYetStarted, c.skip)
+
+        c.start()
+        c.skip()
+        self.assertEqual(c.current, 'break')
+
+        [c.skip() for i in xrange(6)]
+        self.assertEqual(c.current, 'coffee')
+        c.skip()
+        self.assertEqual(c.current, 'work')
+
 
 class TestUIFunctions(unittest.TestCase):
 
