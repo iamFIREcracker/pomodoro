@@ -250,16 +250,28 @@ class UI(gobject.GObject):
         self.window.set_title('Pomodoro')
         self.window.connect('delete-event', self._delete_cb)
 
-        self.vbox = gtk.VBox(homogeneous=False)
+        self.hbox = gtk.HBox(homogeneous=False)
 
         self.progressbar = gtk.ProgressBar()
 
-        self.button = gtk.Button('Begin')
+        play_img = gtk.Image()
+        play_img.set_from_stock(gtk.STOCK_MEDIA_PLAY,
+                                gtk.ICON_SIZE_LARGE_TOOLBAR)
+        stop_img = gtk.Image()
+        stop_img.set_from_stock(gtk.STOCK_MEDIA_STOP,
+                                gtk.ICON_SIZE_LARGE_TOOLBAR)
+        self.images = {'play': play_img,
+                       'stop': stop_img
+                      }
+        [widget.show() for widget in self.images.values()]
+
+        self.button = gtk.Button()
+        self.button.add(self.images['play'])
         self.button.connect('clicked', self._clicked_cb)
 
-        self.vbox.pack_start(self.progressbar)
-        self.vbox.pack_start(self.button, False, False)
-        self.window.add(self.vbox)
+        self.hbox.pack_start(self.button, False, False)
+        self.hbox.pack_start(self.progressbar)
+        self.window.add(self.hbox)
         self.window.show_all()
 
     def _delete_cb(self, window, event):
@@ -270,12 +282,14 @@ class UI(gobject.GObject):
     def _clicked_cb(self, button):
         """Emit begin/end event depeing on the button label.
         """
-        if button.get_label() == 'Begin':
-            self.emit('begin')
-            button.set_label('End')
-        else:
-            self.emit('end')
-            button.set_label('Begin')
+        for image in button.get_children():
+            button.remove(image)
+            if image == self.images['play']:
+                button.add(self.images['stop'])
+                self.emit('begin')
+            else:
+                button.add(self.images['play'])
+                self.emit('end')
 
     @property
     def text(self):
