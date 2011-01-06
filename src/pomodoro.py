@@ -160,8 +160,11 @@ class Core(gobject.GObject):
 
     __gsignals__ = {
         'phase-fraction': (gobject.SIGNAL_RUN_FIRST, None,
-                           (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT,
-                            gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT))
+                           (gobject.TYPE_STRING, # name of the current fase
+                            gobject.TYPE_INT, # index of the current fase [ 1..4 ]
+                            gobject.TYPE_INT, # number of elapsed ticks
+                            gobject.TYPE_INT, # number of total ticks
+                           ))
     }
 
     def __init__(self):
