@@ -461,7 +461,8 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
             player.start()
         except PlayerAlreadyStarted:
             pass
-        ui.set_title("Pomodoro %d/4" % (phase,))
+        if name == 'work':
+            ui.set_title("Pomodoro %d/4" % (phase,))
         ui.buzz()
 
 
