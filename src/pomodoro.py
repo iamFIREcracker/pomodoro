@@ -6,7 +6,13 @@ import sys
 
 import gobject
 import gtk
-import gst
+
+try:
+    import pygame
+    assert pygame.__version__ >= '1.8'
+except (ImportError, AssertionError, AttributeError):
+    sys.stderr.write('PyGame 1.8 or more recent required\n')
+    sys.exit(1)
 
 
 TICKS = 1 # number of ticks per second
@@ -14,7 +20,7 @@ WORK = 25 * 60 # in seconds
 BREAK = 5 * 60 # in seconds
 COFFEE = 10 * 60 # in seconds
 
-BEEP = 'file://' + sys.path[0] + '/beep.wav'
+BEEP = sys.path[0] + '/beep.wav'
 
 
 
@@ -207,7 +213,8 @@ class Core(gobject.GObject):
         timer = self.timers[self.current]
         # emit the signal before to tick the timer in orde to prevent
         # race conditions between signals.
-        self.emit('phase-fraction', self.current, (timer.count + 1), timer.ticks)
+        self.emit('phase-fraction', self.current, (timer.count + 1),
+                  timer.ticks)
         timer.tick()
 
     def stop(self):
@@ -374,42 +381,30 @@ class Player(object):
     """
 
     def __init__(self):
-        self.pipeline = gst.parse_launch("playbin2 uri=%s" % BEEP)
+        pygame.mixer.init()
+        self.sound = pygame.mixer.Sound(BEEP)
+        self.channel = None
 
-        bus = self.pipeline.get_bus()
-        bus.add_signal_watch()
-        bus.connect('message', self._message_cb)
-
-        self.started = False
-
-    def _message_cb(self, bus, message):
-        """Handle a message received on the bus.
-
-        Raise:
-            PlayerError
-        """
-        if message.type == gst.MESSAGE_ERROR:
-            self.stop()
-            (err, debug) = message.parse_error()
-            raise PlayerError(err, debug)
-        elif message.type == gst.MESSAGE_EOS:
-            self.stop()
+    @property
+    def started(self):
+        try:
+            return self.channel.get_busy() != 0
+        except AttributeError:
+            return False
 
     def start(self):
         """Start to play the audio file.
         """
         if self.started:
             raise PlayerAlreadyStarted()
-        self.pipeline.set_state(gst.STATE_PLAYING)
-        self.started = True
+        self.channel = self.sound.play()
 
     def stop(self):
         """Stop to play the audio file.
         """
         if not self.started:
             raise PlayerNotYetStarted()
-        self.pipeline.set_state(gst.STATE_READY)
-        self.started = False
+        self.sound.stop()
 
 
 def ticks_to_time(ticks):
@@ -457,17 +452,13 @@ def _begin_cb(ui, core, clk):
         pass
 
 
-def _skip_cb(ui, core, player):
+def _skip_cb(ui, core):
     """Jump to the next pomodoro phase.
     """
     try:
         core.skip()
     except CoreNotYetStarted:
         return
-    try:
-        player.start()
-    except PlayerAlreadyStarted:
-        pass
 
 
 def _end_cb(ui, clk, core, player):
@@ -507,7 +498,7 @@ def _main():
     clk.connect('tick', _tick_cb, core)
     core.connect('phase-fraction', _phase_fraction_cb, ui, player)
     ui.connect('begin', _begin_cb, core, clk)
-    ui.connect('skip', _skip_cb, core, player)
+    ui.connect('skip', _skip_cb, core)
     ui.connect('end', _end_cb, clk, core, player)
     ui.connect('close', _close_cb, clk, core, player)
     
