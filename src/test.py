@@ -180,6 +180,30 @@ class TestUIFunctions(unittest.TestCase):
     def test_init(self):
         ui = pomodoro.UI()
 
+        button = ui.buttons['begin']
+        self.assertEqual(button.get_children()[0], ui.images['play'])
+
+    def test_buzz(self):
+        ui = pomodoro.UI()
+
+        ui.buzz()
+
+    def test_begin_cb(self):
+        ui = pomodoro.UI()
+
+        button = ui.buttons['begin']
+        ui.begin()
+        self.assertEqual(button.get_children()[0], ui.images['pause'])
+        ui.begin()
+        self.assertEqual(button.get_children()[0], ui.images['play'])
+        ui.begin()
+        self.assertEqual(button.get_children()[0], ui.images['pause'])
+
+    def test_skip(self):
+        ui = pomodoro.UI()
+        
+        ui.skip()
+
     def test_set_title(self):
         ui = pomodoro.UI()
 
@@ -205,10 +229,6 @@ class TestUIFunctions(unittest.TestCase):
 
         ui.set_label('foo')
         self.assertEqual(ui.label, 'foo')
-    def test_buzz(self):
-        ui = pomodoro.UI()
-
-        ui.buzz()
 
 
 class TestPlayerFunctions(unittest.TestCase):

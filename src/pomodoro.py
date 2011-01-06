@@ -274,7 +274,7 @@ class UI(gobject.GObject):
 
     __gsignals__ = {
         'begin': (gobject.SIGNAL_RUN_FIRST, None, ()),
-        'end': (gobject.SIGNAL_RUN_FIRST, None, ()),
+        'suspend': (gobject.SIGNAL_RUN_FIRST, None, ()),
         'skip': (gobject.SIGNAL_RUN_FIRST, None, ()),
         'close': (gobject.SIGNAL_RUN_FIRST, None, ()),
     }
@@ -285,44 +285,45 @@ class UI(gobject.GObject):
         self.window = gtk.Window()
         self.window.connect('delete-event', self._delete_cb)
 
-        self.vbox = gtk.VBox(homogeneous=False)
+        vbox = gtk.VBox(homogeneous=False)
 
-        self.hbox = gtk.HBox(homogeneous=False)
+        hbox = gtk.HBox(homogeneous=False)
 
         self.progressbar = gtk.ProgressBar()
 
         play_img = gtk.Image()
         play_img.set_from_stock(gtk.STOCK_MEDIA_PLAY,
                                 gtk.ICON_SIZE_LARGE_TOOLBAR)
-        stop_img = gtk.Image()
-        stop_img.set_from_stock(gtk.STOCK_MEDIA_STOP,
-                                gtk.ICON_SIZE_LARGE_TOOLBAR)
+        pause_img = gtk.Image()
+        pause_img.set_from_stock(gtk.STOCK_MEDIA_PAUSE,
+                                 gtk.ICON_SIZE_LARGE_TOOLBAR)
         skip_img = gtk.Image()
         skip_img.set_from_stock(gtk.STOCK_MEDIA_NEXT,
                                 gtk.ICON_SIZE_LARGE_TOOLBAR)
         self.images = {'play': play_img,
-                       'stop': stop_img,
+                       'pause': pause_img,
                        'skip': skip_img
                       }
         [widget.show() for widget in self.images.values()]
 
-        button = gtk.Button()
-        button.add(self.images['play'])
-        button.connect('clicked', self._clicked_cb)
-        self.hbox.pack_start(button, False, False)
+        self.buttons = dict()
+        self.buttons['begin'] = gtk.Button()
+        self.buttons['begin'].add(self.images['play'])
+        self.buttons['begin'].connect('clicked', self._clicked_cb)
+        hbox.pack_start(self.buttons['begin'], False, False)
 
-        button = gtk.Button()
-        button.add(self.images['skip'])
-        button.connect('clicked', self._clicked_cb)
-        self.hbox.pack_start(button, False, False)
+        self.buttons['skip'] = gtk.Button()
+        self.buttons['skip'].add(self.images['skip'])
+        self.buttons['skip'].connect('clicked', self._clicked_cb)
+        hbox.pack_start(self.buttons['skip'], False, False)
 
-        self.vbox.pack_start(self.hbox, True, True)
+        vbox.pack_start(hbox, True, True)
 
         self.entry = gtk.Entry()
-        self.vbox.pack_start(self.entry, False, False)
+        vbox.pack_start(self.entry, False, False)
 
-        self.hbox.pack_start(self.progressbar)
-        self.window.add(self.vbox)
+        hbox.pack_start(self.progressbar)
+        self.window.add(vbox)
         self.window.show_all()
 
     def _delete_cb(self, window, event):
@@ -335,15 +336,35 @@ class UI(gobject.GObject):
         """
         for image in button.get_children():
             if image == self.images['skip']:
-                self.emit('skip')
+                self.skip()
             else:
-                button.remove(image)
-                if image == self.images['play']:
-                    button.add(self.images['stop'])
-                    self.emit('begin')
-                else:
-                    button.add(self.images['play'])
-                    self.emit('end')
+                self.begin()
+
+    def buzz(self):
+        """Raise the window to catch the attention of the user.
+        """
+        self.window.window.show()
+
+    def begin(self):
+        """Change the image on the first button, and emit the right signal.
+
+        If the current image is the play button, then change it to the stop
+        button and emit the 'begin' signal.
+        """
+        button = self.buttons['begin']
+        image = button.get_children()[0]
+        button.remove(image)
+        if image == self.images['play']:
+            button.add(self.images['pause'])
+            self.emit('begin')
+        else:
+            button.add(self.images['play'])
+            self.emit('suspend')
+
+    def skip(self):
+        """Emit a `skip' signal.
+        """
+        self.emit('skip')
 
     @property
     def title(self):
@@ -397,11 +418,6 @@ class UI(gobject.GObject):
             text text-string label
         """
         self.entry.set_text(text)
-
-    def buzz(self):
-        """Raise the window to catch the attention of the user.
-        """
-        self.window.window.show()
 
 
 class PlayerError(Exception):
@@ -516,7 +532,15 @@ def _skip_cb(ui, core):
         return
 
 
-def _end_cb(ui, clk, core, player):
+def _suspend_cb(ui, clk):
+    """Stop the clock.
+    """
+    try:
+        clk.stop()
+    except ClockNotStarted:
+        pass
+
+def _close_cb(ui, clk, core, player):
     """Stop the clock first, and the core object second.
     """
     try:
@@ -531,16 +555,6 @@ def _end_cb(ui, clk, core, player):
         player.stop()
     except PlayerNotYetStarted:
         pass
-
-    ui.set_title('Pomodoro')
-    ui.set_fraction(0.0)
-    ui.set_text('')
-
-
-def _close_cb(ui, clk, core, player):
-    """Stop eventually active objects and quit the mainloop.
-    """
-    _end_cb(ui, clk, core, player)
 
     gtk.main_quit()
 
@@ -559,7 +573,7 @@ def _main():
     core.connect('phase-fraction', _phase_fraction_cb, ui, player)
     ui.connect('begin', _begin_cb, core, clk)
     ui.connect('skip', _skip_cb, core)
-    ui.connect('end', _end_cb, clk, core, player)
+    ui.connect('suspend', _suspend_cb, clk)
     ui.connect('close', _close_cb, clk, core, player)
     
     gtk.main()
