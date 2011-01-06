@@ -526,13 +526,9 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
             ui.begin_toggle()
 
 
-def _begin_cb(ui, core, clk):
+def _begin_cb(ui, clk):
     """Start the core object first, and the clock second.
     """
-    try:
-        core.start()
-    except CoreAlreadyStarted:
-        pass
     try:
         clk.start()
     except ClockAlreadyStarted:
@@ -542,10 +538,7 @@ def _begin_cb(ui, core, clk):
 def _skip_cb(ui, core):
     """Jump to the next pomodoro phase.
     """
-    try:
-        core.skip()
-    except CoreNotYetStarted:
-        return
+    core.skip()
 
 
 def _suspend_cb(ui, clk):
@@ -580,6 +573,7 @@ def _main():
     clk = Clock()
 
     core = Core()
+    core.start()
 
     ui = UI()
     ui.set_title('Pomodoro')
@@ -588,7 +582,7 @@ def _main():
 
     clk.connect('tick', _tick_cb, core)
     core.connect('phase-fraction', _phase_fraction_cb, ui, player)
-    ui.connect('begin', _begin_cb, core, clk)
+    ui.connect('begin', _begin_cb, clk)
     ui.connect('skip', _skip_cb, core)
     ui.connect('suspend', _suspend_cb, clk)
     ui.connect('close', _close_cb, clk, core, player)
