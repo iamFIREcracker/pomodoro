@@ -20,7 +20,7 @@ class TestClockFunctions(unittest.TestCase):
         clk.start()
         self.assertTrue(clk.started != None)
 
-        self.assertRaises(pomodoro.ClockAlreadyStarted, clk.start)
+        self.assertRaises(pomodoro.AlreadyStarted, clk.start)
 
     def test_stop(self):
         clk = pomodoro.Clock()
@@ -29,7 +29,7 @@ class TestClockFunctions(unittest.TestCase):
         clk.stop()
         self.assertTrue(clk.started is None)
 
-        self.assertRaises(pomodoro.ClockNotStarted, clk.stop)
+        self.assertRaises(pomodoro.NotYetStarted, clk.stop)
 
 
 class TestTimerFunctions(unittest.TestCase):
@@ -40,8 +40,8 @@ class TestTimerFunctions(unittest.TestCase):
         self.assertEqual(t.ticks, 10)
         self.assertEqual(t.count, 0)
 
-        self.assertRaises(pomodoro.TicksValueError, pomodoro.Timer, 0)
-        self.assertRaises(pomodoro.TicksValueError, pomodoro.Timer, -1)
+        self.assertRaises(ValueError, pomodoro.Timer, 0)
+        self.assertRaises(ValueError, pomodoro.Timer, -1)
 
 
     def test_tick(self):
@@ -65,8 +65,8 @@ class TestTimerFunctions(unittest.TestCase):
         self.assertEqual(t.ticks, 20)
         self.assertEqual(t.count, 0)
 
-        self.assertRaises(pomodoro.TicksValueError, t.reset, 0)
-        self.assertRaises(pomodoro.TicksValueError, t.reset, -1)
+        self.assertRaises(ValueError, t.reset, 0)
+        self.assertRaises(ValueError, t.reset, -1)
 
 
 class TestCoreFunctions(unittest.TestCase):
@@ -86,15 +86,16 @@ class TestCoreFunctions(unittest.TestCase):
         self.assertEqual(c.current, 'work')
         self.assertEqual(c.phase, 1)
 
-        self.assertRaises(pomodoro.CoreAlreadyStarted, c.start)
+        self.assertRaises(pomodoro.AlreadyStarted, c.start)
 
     def test_tick(self):
         c = pomodoro.Core()
 
-        self.assertRaises(pomodoro.CoreNotYetStarted, c.tick)
+        self.assertRaises(pomodoro.NotYetStarted, c.tick)
 
         c.start()
 
+        # XXX refactor????
         # phase 1/4
         self.assertEqual(c.current, 'work')
         self.assertEqual(c.phase, 1)
@@ -156,12 +157,12 @@ class TestCoreFunctions(unittest.TestCase):
         for timer in c.timers.values():
             self.assertEqual(timer.count, 0)
 
-        self.assertRaises(pomodoro.CoreNotYetStarted, c.stop)
+        self.assertRaises(pomodoro.NotYetStarted, c.stop)
 
     def test_skip(self):
         c = pomodoro.Core()
 
-        self.assertRaises(pomodoro.CoreNotYetStarted, c.skip)
+        self.assertRaises(pomodoro.NotYetStarted, c.skip)
 
         c.start()
         c.skip()
@@ -222,7 +223,8 @@ class TestUIFunctions(unittest.TestCase):
         ui.set_fraction(0.5)
         self.assertEqual(ui.fraction, 0.5)
 
-        self.assertRaises(pomodoro.FractionValueError, ui.set_fraction, -1)
+        self.assertRaises(ValueError, ui.set_fraction, -1)
+        self.assertRaises(ValueError, ui.set_fraction, 1.1)
 
     def test_set_label(self):
         ui = pomodoro.UI()
@@ -244,7 +246,7 @@ class TestPlayerFunctions(unittest.TestCase):
         p.start()
         self.assertEqual(p.started, True)
 
-        self.assertRaises(pomodoro.PlayerAlreadyStarted, p.start)
+        self.assertRaises(pomodoro.AlreadyStarted, p.start)
 
     def test_stop(self):
         p = pomodoro.Player()
@@ -253,16 +255,7 @@ class TestPlayerFunctions(unittest.TestCase):
         p.stop()
         self.assertEqual(p.started, False)
 
-        self.assertRaises(pomodoro.PlayerNotYetStarted, p.stop)
-
-
-class TestPomodoroFunctions(unittest.TestCase):
-
-    def test_ticks_to_time(self):
-        self.assertEqual(pomodoro.ticks_to_time(10), (0, 10))
-        self.assertEqual(pomodoro.ticks_to_time(61), (1, 1))
-
-        self.assertRaises(ValueError, pomodoro.ticks_to_time, -1)
+        self.assertRaises(pomodoro.NotYetStarted, p.stop)
 
 
 

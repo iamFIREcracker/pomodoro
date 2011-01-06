@@ -26,15 +26,13 @@ BEEP = sys.path[0] + '/beep.wav'
 LOG = os.path.join(os.path.expanduser("~"), '.pomodoro_history')
 
 
-
-class ClockAlreadyStarted(Exception):
-    """Raised when users try to start a clock more than once.
+class AlreadyStarted(Exception):
+    """Raised when users try to start startable objects more than once.
     """
     pass
 
-
-class ClockNotStarted(Exception):
-    """Raised when users try to stop a clock not yet started.
+class NotYetStarted(Exception):
+    """Raised when users try to stop objects not yet started.
     """
     pass
 
@@ -58,20 +56,20 @@ class Clock(gobject.GObject):
         """Start to emit ticks.
 
         Raise:
-            ClockAlreadyStarted
+            AlreadyStarted
         """
         if self.started is not None:
-            raise ClockAlreadyStarted()
+            raise AlreadyStarted()
         self.started = gobject.timeout_add(1000 // TICKS, self._tick)
 
     def stop(self):
         """Stop to emit ticks.
 
         Raise:
-            ClockNotStarted.
+            NotYetStarted.
         """
         if self.started is None:
-            raise ClockNotStarted()
+            raise NotYetStarted()
         gobject.source_remove(self.started)
         self.started = None
 
@@ -81,17 +79,6 @@ class Clock(gobject.GObject):
         self.emit('tick')
 
         return True
-
-
-class TicksValueError(Exception):
-    """Raised when trying to set the number of ticks to a value not
-    greater than 0.
-    """
-
-    def __init__(self):
-        super(TicksValueError, self).__init__(
-            "Param `ticks' should be greater than 0."
-        )
 
 
 class Timer(gobject.GObject):
@@ -109,12 +96,12 @@ class Timer(gobject.GObject):
             ticks how many ticks to wait before to emit the signal.
 
         Raise:
-            ValueError
+            ValueError: ticks <= 0
         """
         super(Timer, self).__init__()
 
         if ticks <= 0:
-            raise TicksValueError()
+            raise ValueError()
         self.ticks = ticks
         self.count = 0
 
@@ -133,25 +120,13 @@ class Timer(gobject.GObject):
             ticks how many ticks to wait before to emit a signal.
 
         Raise:
-            ValueError
+            ValueError: ticks <= 0
         """
         self.count = 0
         if ticks is not None:
             if ticks <= 0:
-                raise TicksValueError()
+                raise ValueError()
             self.ticks = ticks
-
-
-class CoreAlreadyStarted(Exception):
-    """Raised when users try to start a core object twice.
-    """
-    pass
-
-
-class CoreNotYetStarted(Exception):
-    """Raised when `ticking' a core object not yet started.
-    """
-    pass
 
 
 class Core(gobject.GObject):
@@ -216,10 +191,10 @@ class Core(gobject.GObject):
         """Load a timer, and start to receive ticks.
 
         Raise:
-            CoreAlreadyStarted
+            AlreadyStarted
         """
         if self.current is not None:
-            raise CoreAlreadyStarted()
+            raise AlreadyStarted()
         self.current = next(self.next_timer)
         self.phase = 1
         timer = self.timers[self.current]
@@ -232,10 +207,10 @@ class Core(gobject.GObject):
         When a timer reach its limit, then we have to select the next one.
 
         Raise:
-            CoreNotYetStarted
+            NotYetStarted
         """
         if self.current is None:
-            raise CoreNotYetStarted()
+            raise NotYetStarted()
         timer = self.timers[self.current]
         # emit the signal before to tick the timer in orde to prevent
         # race conditions between signals.
@@ -247,10 +222,10 @@ class Core(gobject.GObject):
         """Reset the current timer and set self.current to None.
 
         Raise:
-            CoreNotYetStarted
+            NotYetStarted
         """
         if self.current is None:
-            raise CoreNotYetStarted()
+            raise NotYetStarted()
         self.timers[self.current].reset()
         self.current = None
         self.phase = 0
@@ -260,22 +235,12 @@ class Core(gobject.GObject):
         """Skip the current pomodoro phase.
 
         Raise:
-            CoreNotYetStarted
+            NotYetStarted
         """
         if self.current is None:
-            raise CoreNotYetStarted()
+            raise NotYetStarted()
         self.timers[self.current].reset()
         self._fire_cb(self.timers[self.current])
-
-
-class FractionValueError(ValueError):
-    """Raised when users try to set a fraction with a value < 0 or > 1.
-    """
-
-    def __init__(self, fraction):
-        super(FractionValueError, self).__init__(
-                "Fraction value not in range [0.0, 1.0]: %s." % (fraction,)
-            )
 
 
 class UI(gobject.GObject):
@@ -411,10 +376,10 @@ class UI(gobject.GObject):
             fraction number in range [0.0, 1.0]
 
         Raise:
-            FractionValueError
+            ValueError: fraction not in [ 0..1 ]
         """
         if fraction < 0 or fraction > 1:
-            raise FractionValueError(fraction)
+            raise ValueError()
         self.progressbar.set_fraction(fraction)
 
     @property
@@ -438,18 +403,6 @@ class PlayerError(Exception):
         super(PlayerError, self).__init__("%s %s" % (error, debug))
 
 
-class PlayerAlreadyStarted(Exception):
-    """Raised when users try to start a player more than once.
-    """
-    pass
-
-
-class PlayerNotYetStarted(Exception):
-    """Raised when users try to stop a player not yet started.
-    """
-    pass
-
-
 class Player(object):
     """Audio player.
     """
@@ -470,27 +423,16 @@ class Player(object):
         """Start to play the audio file.
         """
         if self.started:
-            raise PlayerAlreadyStarted()
+            raise AlreadyStarted()
         self.channel = self.sound.play()
 
     def stop(self):
         """Stop to play the audio file.
         """
         if not self.started:
-            raise PlayerNotYetStarted()
+            raise NotYetStarted()
         self.sound.stop()
 
-
-def ticks_to_time(ticks):
-    """Convert ticks time to minutes and seconds.
-
-    Keyword:
-        ticks number of elapsed ticks.
-    """
-    if ticks < 0:
-        raise ValueError()
-    secs = ticks // TICKS
-    return divmod(secs, 60)
 
 
 def _tick_cb(clk, core):
@@ -511,13 +453,13 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
         ui Ui object that we need to update
         player Player object used to play sounds.
     """
-    (mins, secs) = ticks_to_time(ticks - count)
+    (mins, secs) = divmod((ticks - count) // TICKS, 60)
     ui.set_text("%s %sm:%ss" % (name, mins, secs))
     ui.set_fraction(count / ticks)
     if count == 0:
         try:
             player.start()
-        except PlayerAlreadyStarted:
+        except AlreadyStarted:
             pass
         if name == 'work':
             ui.set_title("Pomodoro %d/4" % (phase,))
@@ -538,10 +480,7 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
 def _begin_cb(ui, clk):
     """Start the core object first, and the clock second.
     """
-    try:
-        clk.start()
-    except ClockAlreadyStarted:
-        pass
+    clk.start()
 
 
 def _skip_cb(ui, core):
@@ -553,10 +492,7 @@ def _skip_cb(ui, core):
 def _suspend_cb(ui, clk):
     """Stop the clock.
     """
-    try:
-        clk.stop()
-    except ClockNotStarted:
-        pass
+    clk.stop()
 
 
 def _close_cb(ui, clk, core, player):
@@ -564,15 +500,15 @@ def _close_cb(ui, clk, core, player):
     """
     try:
         clk.stop()
-    except ClockNotStarted:
+    except NotStarted:
         pass
     try:
         core.stop()
-    except CoreNotYetStarted:
+    except NotYetStarted:
         pass
     try:
         player.stop()
-    except PlayerNotYetStarted:
+    except NotYetStarted:
         pass
 
     gtk.main_quit()
