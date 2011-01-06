@@ -168,6 +168,7 @@ class Core(gobject.GObject):
                        'break': Timer(BREAK * TICKS),
                        'coffee': Timer(COFFEE * TICKS)}
         self.current = None
+        self.phase = 0
         self.next_timer = self._next_timer()
 
         for timer in self.timers.values():
@@ -175,6 +176,11 @@ class Core(gobject.GObject):
 
     def _next_timer(self):
         """Return the name of the next timer to activate.
+
+        Phase 1/4: work, break.
+        Phase 2/4: work, break.
+        Phase 3/4: work, break.
+        Phase 4/4: work, coffee.
         """
         while True:
             for i in xrange(4):
@@ -185,6 +191,10 @@ class Core(gobject.GObject):
         """Emit a signal to notify the beginning of a new phase.
         """
         self.current = next(self.next_timer)
+        if self.current == 'work':
+            self.phase += 1
+            if self.phase == 5:
+                self.phase = 1
         timer = self.timers[self.current]
         self.emit('phase-fraction', self.current, timer.count, timer.ticks)
 
@@ -197,6 +207,7 @@ class Core(gobject.GObject):
         if self.current is not None:
             raise CoreAlreadyStarted()
         self.current = next(self.next_timer)
+        self.phase = 1
         timer = self.timers[self.current]
         self.emit('phase-fraction', self.current, timer.count, timer.ticks)
 
@@ -227,6 +238,7 @@ class Core(gobject.GObject):
             raise CoreNotYetStarted()
         self.timers[self.current].reset()
         self.current = None
+        self.phase = 0
         self.next_timer = self._next_timer()
 
     def skip(self):

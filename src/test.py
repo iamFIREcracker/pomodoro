@@ -75,6 +75,7 @@ class TestCoreFunctions(unittest.TestCase):
         c = pomodoro.Core()
 
         self.assertTrue(c.current is None)
+        self.assertEqual(c.phase, 0)
         for timer in c.timers.values():
             self.assertEqual(timer.count, 0)
 
@@ -83,6 +84,7 @@ class TestCoreFunctions(unittest.TestCase):
 
         c.start()
         self.assertEqual(c.current, 'work')
+        self.assertEqual(c.phase, 1)
 
         self.assertRaises(pomodoro.CoreAlreadyStarted, c.start)
 
@@ -92,22 +94,54 @@ class TestCoreFunctions(unittest.TestCase):
         self.assertRaises(pomodoro.CoreNotYetStarted, c.tick)
 
         c.start()
-        for i in xrange(4):
-            [c.tick() for j in xrange(pomodoro.WORK)]
-            if i != 3:
-                self.assertEqual(c.current, 'break')
-                self.assertEqual(c.timers[c.current].count, 0)
-                [c.tick() for j in xrange(pomodoro.BREAK)]
-            else:
-                self.assertEqual(c.current, 'coffee')
-                self.assertEqual(c.timers[c.current].count, 0)
-                [c.tick() for j in xrange(pomodoro.COFFEE)]
 
-            self.assertEqual(c.current, 'work')
-            self.assertEqual(c.timers[c.current].count, 0)
-
-        [c.tick() for i in xrange(pomodoro.WORK)]
+        # phase 1/4
+        self.assertEqual(c.current, 'work')
+        self.assertEqual(c.phase, 1)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.WORK)]
         self.assertEqual(c.current, 'break')
+        self.assertEqual(c.phase, 1)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.BREAK)]
+
+        # phase 2/4
+        self.assertEqual(c.current, 'work')
+        self.assertEqual(c.phase, 2)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.WORK)]
+        self.assertEqual(c.current, 'break')
+        self.assertEqual(c.phase, 2)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.BREAK)]
+
+        # phase 3/4
+        self.assertEqual(c.current, 'work')
+        self.assertEqual(c.phase, 3)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.WORK)]
+        self.assertEqual(c.current, 'break')
+        self.assertEqual(c.phase, 3)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.BREAK)]
+
+        # phase 4/4
+        self.assertEqual(c.current, 'work')
+        self.assertEqual(c.phase, 4)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.WORK)]
+        self.assertEqual(c.current, 'coffee')
+        self.assertEqual(c.phase, 4)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.COFFEE)]
+
+        # phase 1/4
+        self.assertEqual(c.current, 'work')
+        self.assertEqual(c.phase, 1)
+        self.assertEqual(c.timers[c.current].count, 0)
+        [c.tick() for j in xrange(pomodoro.WORK)]
+        self.assertEqual(c.current, 'break')
+        self.assertEqual(c.phase, 1)
         self.assertEqual(c.timers[c.current].count, 0)
 
     def test_stop(self):
@@ -118,6 +152,7 @@ class TestCoreFunctions(unittest.TestCase):
         c.tick()
         c.stop()
         self.assertTrue(c.current is None)
+        self.assertEqual(c.phase, 0)
         for timer in c.timers.values():
             self.assertEqual(timer.count, 0)
 
@@ -134,8 +169,10 @@ class TestCoreFunctions(unittest.TestCase):
 
         [c.skip() for i in xrange(6)]
         self.assertEqual(c.current, 'coffee')
+        self.assertEqual(c.phase, 4)
         c.skip()
         self.assertEqual(c.current, 'work')
+        self.assertEqual(c.phase, 1)
 
 
 class TestUIFunctions(unittest.TestCase):
