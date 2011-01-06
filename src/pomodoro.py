@@ -155,7 +155,14 @@ class CoreNotYetStarted(Exception):
 
 
 class Core(gobject.GObject):
-    """XXX
+    """Core object of the pomodoro tracker.
+
+    The object periodically emit signals to notify the status of the current
+    session:
+    - name of the current session: work or break/coffee ?
+    - how many pomodoros have you done since last long break?
+    - how many elapsed ticks since the beginning of the current session?
+    - how many ticks count the current session?
     """
 
     __gsignals__ = {
@@ -181,7 +188,7 @@ class Core(gobject.GObject):
             timer.connect('fire', self._fire_cb)
 
     def _next_timer(self):
-        """Return the name of the next timer to activate.
+        """Generator return the name of next timers to use.
 
         Phase 1/4: work, break.
         Phase 2/4: work, break.
@@ -510,7 +517,7 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
         if name == 'work':
             # log the pomodoro on the file ...
             with open(LOG, 'a+') as f:
-                date = datetime.datetime.utcnow()
+                date = datetime.datetime.now()
                 message = ui.label if ui.label else '#void'
                 f.write("%s | %s\n" % (date, message))
             pass
