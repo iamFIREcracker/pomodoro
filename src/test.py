@@ -182,7 +182,6 @@ class TestUIFunctions(unittest.TestCase):
         ui = pomodoro.UI()
 
         button = ui.buttons['begin']
-        self.assertEqual(button.get_children()[0], ui.images['play'])
 
     def test_buzz(self):
         ui = pomodoro.UI()
@@ -193,6 +192,7 @@ class TestUIFunctions(unittest.TestCase):
         ui = pomodoro.UI()
 
         button = ui.buttons['begin']
+        self.assertEqual(button.get_children()[0], ui.images['play'])
         ui.begin_toggle()
         self.assertEqual(button.get_children()[0], ui.images['pause'])
         ui.begin_toggle()
