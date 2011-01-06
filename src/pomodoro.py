@@ -159,7 +159,7 @@ class Core(gobject.GObject):
 
     The object periodically emit signals to notify the status of the current
     session:
-    - name of the current session: work or break/coffee ?
+    - name of the current session [ 'work', 'break', 'coffee' ]
     - how many pomodoros have you done since last long break?
     - how many elapsed ticks since the beginning of the current session?
     - how many ticks count the current session?
@@ -500,7 +500,16 @@ def _tick_cb(clk, core):
 
 
 def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
-    """Update the progress-bar with the new fraction value.
+    """Update the ui object, given the status of the core object.
+
+    Keywords:
+        core Core object which generated the signal.
+        name name of the timer [ 'work', 'break', 'coffee' ]
+        phase index of the current phase [ 1..4 ]
+        count number of elapsed ticks
+        ticks total number of ticks
+        ui Ui object that we need to update
+        player Player object used to play sounds.
     """
     (mins, secs) = ticks_to_time(ticks - count)
     ui.set_text("%s %sm:%ss" % (name, mins, secs))
