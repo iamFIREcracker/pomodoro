@@ -285,6 +285,8 @@ class UI(gobject.GObject):
         self.window = gtk.Window()
         self.window.connect('delete-event', self._delete_cb)
 
+        self.vbox = gtk.VBox(homogeneous=False)
+
         self.hbox = gtk.HBox(homogeneous=False)
 
         self.progressbar = gtk.ProgressBar()
@@ -314,8 +316,13 @@ class UI(gobject.GObject):
         button.connect('clicked', self._clicked_cb)
         self.hbox.pack_start(button, False, False)
 
+        self.vbox.pack_start(self.hbox, True, True)
+
+        self.entry = gtk.Entry()
+        self.vbox.pack_start(self.entry, False, False)
+
         self.hbox.pack_start(self.progressbar)
-        self.window.add(self.hbox)
+        self.window.add(self.vbox)
         self.window.show_all()
 
     def _delete_cb(self, window, event):
@@ -379,6 +386,18 @@ class UI(gobject.GObject):
             raise FractionValueError(fraction)
         self.progressbar.set_fraction(fraction)
 
+    @property
+    def label(self):
+        return self.entry.get_text()
+
+    def set_label(self, text):
+        """Set the label for the next pomodoro.
+
+        Keywords:
+            text text-string label
+        """
+        self.entry.set_text(text)
+
     def buzz(self):
         """Raise the window to catch the attention of the user.
         """
@@ -397,6 +416,7 @@ class PlayerAlreadyStarted(Exception):
     """Raised when users try to start a player more than once.
     """
     pass
+
 
 class PlayerNotYetStarted(Exception):
     """Raised when users try to stop a player not yet started.
@@ -469,7 +489,9 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
         ui.buzz()
     if count == ticks and name == 'work':
         with open(LOG, 'a+') as f:
-            f.write("%s | %s\n" % (datetime.datetime.utcnow(), '#void'))
+            date = datetime.datetime.utcnow()
+            message = ui.label if ui.label else '#void'
+            f.write("%s | %s\n" % (date, message))
 
 
 def _begin_cb(ui, core, clk):

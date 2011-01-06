@@ -200,6 +200,11 @@ class TestUIFunctions(unittest.TestCase):
 
         self.assertRaises(pomodoro.FractionValueError, ui.set_fraction, -1)
 
+    def test_set_label(self):
+        ui = pomodoro.UI()
+
+        ui.set_label('foo')
+        self.assertEqual(ui.label, 'foo')
     def test_buzz(self):
         ui = pomodoro.UI()
 
