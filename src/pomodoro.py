@@ -504,7 +504,7 @@ def _close_cb(ui, clk, core, player):
     """
     try:
         clk.stop()
-    except NotStarted:
+    except NotYetStarted:
         pass
     try:
         core.stop()
