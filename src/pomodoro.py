@@ -454,7 +454,6 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
     """Update the progress-bar with the new fraction value.
     """
     (mins, secs) = ticks_to_time(ticks - count)
-    ui.set_title("Pomodoro %d/4" % (phase,))
     ui.set_text("%s %sm:%ss" % (name, mins, secs))
     ui.set_fraction(count / ticks)
     if count == 0:
@@ -462,6 +461,7 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
             player.start()
         except PlayerAlreadyStarted:
             pass
+        ui.set_title("Pomodoro %d/4" % (phase,))
         ui.buzz()
 
 
