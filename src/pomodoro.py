@@ -158,7 +158,7 @@ class Core(gobject.GObject):
     __gsignals__ = {
         'phase-fraction': (gobject.SIGNAL_RUN_FIRST, None,
                            (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT,
-                            gobject.TYPE_PYOBJECT))
+                            gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT))
     }
 
     def __init__(self):
@@ -196,7 +196,8 @@ class Core(gobject.GObject):
             if self.phase == 5:
                 self.phase = 1
         timer = self.timers[self.current]
-        self.emit('phase-fraction', self.current, timer.count, timer.ticks)
+        self.emit('phase-fraction', self.current, self.phase, timer.count,
+                  timer.ticks)
 
     def start(self):
         """Load a timer, and start to receive ticks.
@@ -209,7 +210,8 @@ class Core(gobject.GObject):
         self.current = next(self.next_timer)
         self.phase = 1
         timer = self.timers[self.current]
-        self.emit('phase-fraction', self.current, timer.count, timer.ticks)
+        self.emit('phase-fraction', self.current, self.phase, timer.count,
+                  timer.ticks)
 
     def tick(self):
         """Route the tick to the active timer.
@@ -224,8 +226,8 @@ class Core(gobject.GObject):
         timer = self.timers[self.current]
         # emit the signal before to tick the timer in orde to prevent
         # race conditions between signals.
-        self.emit('phase-fraction', self.current, (timer.count + 1),
-                  timer.ticks)
+        self.emit('phase-fraction', self.current, self.phase,
+                  (timer.count + 1), timer.ticks)
         timer.tick()
 
     def stop(self):
@@ -278,7 +280,6 @@ class UI(gobject.GObject):
         super(UI, self).__init__()
 
         self.window = gtk.Window()
-        self.window.set_title('Pomodoro')
         self.window.connect('delete-event', self._delete_cb)
 
         self.hbox = gtk.HBox(homogeneous=False)
@@ -333,6 +334,18 @@ class UI(gobject.GObject):
                 else:
                     button.add(self.images['play'])
                     self.emit('end')
+
+    @property
+    def title(self):
+        return self.window.get_title()
+
+    def set_title(self, title):
+        """Set the title of the window.
+
+        Keywords:
+            title text-string for the title
+        """
+        self.window.set_title(title)
 
     @property
     def text(self):
@@ -437,10 +450,11 @@ def _tick_cb(clk, core):
     core.tick()
 
 
-def _phase_fraction_cb(core, name, count, ticks, ui, player):
+def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
     """Update the progress-bar with the new fraction value.
     """
     (mins, secs) = ticks_to_time(ticks - count)
+    ui.set_title("Pomodoro %d/4" % (phase,))
     ui.set_text("%s %sm:%ss" % (name, mins, secs))
     ui.set_fraction(count / ticks)
     if count == 0:
@@ -489,6 +503,7 @@ def _end_cb(ui, clk, core, player):
     except PlayerNotYetStarted:
         pass
 
+    ui.set_title('Pomodoro')
     ui.set_fraction(0.0)
     ui.set_text('')
 
@@ -503,8 +518,12 @@ def _close_cb(ui, clk, core, player):
 
 def _main():
     clk = Clock()
+
     core = Core()
+
     ui = UI()
+    ui.set_title('Pomodoro')
+
     player = Player()
 
     clk.connect('tick', _tick_cb, core)

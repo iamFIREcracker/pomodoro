@@ -180,6 +180,12 @@ class TestUIFunctions(unittest.TestCase):
     def test_init(self):
         ui = pomodoro.UI()
 
+    def test_set_title(self):
+        ui = pomodoro.UI()
+
+        ui.set_text('foo')
+        self.assertEqual(ui.text, 'foo')
+
     def test_set_text(self):
         ui = pomodoro.UI()
 
