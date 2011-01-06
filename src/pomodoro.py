@@ -338,14 +338,14 @@ class UI(gobject.GObject):
             if image == self.images['skip']:
                 self.skip()
             else:
-                self.begin()
+                self.begin_toggle()
 
     def buzz(self):
         """Raise the window to catch the attention of the user.
         """
         self.window.window.show()
 
-    def begin(self):
+    def begin_toggle(self):
         """Change the image on the first button, and emit the right signal.
 
         If the current image is the play button, then change it to the stop
@@ -503,11 +503,17 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
         if name == 'work':
             ui.set_title("Pomodoro %d/4" % (phase,))
         ui.buzz()
-    if count == ticks and name == 'work':
-        with open(LOG, 'a+') as f:
-            date = datetime.datetime.utcnow()
-            message = ui.label if ui.label else '#void'
-            f.write("%s | %s\n" % (date, message))
+    if count == ticks:
+        if name == 'work':
+            # log the pomodoro on the file ...
+            with open(LOG, 'a+') as f:
+                date = datetime.datetime.utcnow()
+                message = ui.label if ui.label else '#void'
+                f.write("%s | %s\n" % (date, message))
+            pass
+        else:
+            # and force the user to start a new pomodoro manually.
+            ui.begin_toggle()
 
 
 def _begin_cb(ui, core, clk):
@@ -539,6 +545,7 @@ def _suspend_cb(ui, clk):
         clk.stop()
     except ClockNotStarted:
         pass
+
 
 def _close_cb(ui, clk, core, player):
     """Stop the clock first, and the core object second.

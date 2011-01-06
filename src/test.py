@@ -192,11 +192,11 @@ class TestUIFunctions(unittest.TestCase):
         ui = pomodoro.UI()
 
         button = ui.buttons['begin']
-        ui.begin()
+        ui.begin_toggle()
         self.assertEqual(button.get_children()[0], ui.images['pause'])
-        ui.begin()
+        ui.begin_toggle()
         self.assertEqual(button.get_children()[0], ui.images['play'])
-        ui.begin()
+        ui.begin_toggle()
         self.assertEqual(button.get_children()[0], ui.images['pause'])
 
     def test_skip(self):
