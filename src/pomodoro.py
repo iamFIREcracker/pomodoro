@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import division
+import datetime
+import os
 import sys
 
 import gobject
@@ -21,6 +23,7 @@ BREAK = 5 * 60 # in seconds
 COFFEE = 10 * 60 # in seconds
 
 BEEP = sys.path[0] + '/beep.wav'
+LOG = os.path.join(os.path.expanduser("~"), '.pomodoro_history')
 
 
 
@@ -464,6 +467,9 @@ def _phase_fraction_cb(core, name, phase, count, ticks, ui, player):
         if name == 'work':
             ui.set_title("Pomodoro %d/4" % (phase,))
         ui.buzz()
+    if count == ticks and name == 'work':
+        with open(LOG, 'a+') as f:
+            f.write("%s | %s\n" % (datetime.datetime.utcnow(), '#void'))
 
 
 def _begin_cb(ui, core, clk):
