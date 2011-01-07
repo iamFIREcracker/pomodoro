@@ -395,20 +395,12 @@ class UI(gobject.GObject):
         self.entry.set_text(text)
 
 
-class PlayerError(Exception):
-    """Raised when something went wrong with the gst backend.
-    """
-
-    def __init__(self, error, debug):
-        super(PlayerError, self).__init__("%s %s" % (error, debug))
-
-
 class Player(object):
     """Audio player.
     """
 
     def __init__(self):
-        pygame.mixer.init()
+        pygame.mixer.init() # XXX successive initializations?
         self.sound = pygame.mixer.Sound(BEEP)
         self.channel = None
 
@@ -421,6 +413,9 @@ class Player(object):
 
     def start(self):
         """Start to play the audio file.
+
+        Raise:
+            AlreadyStarted
         """
         if self.started:
             raise AlreadyStarted()
@@ -428,6 +423,9 @@ class Player(object):
 
     def stop(self):
         """Stop to play the audio file.
+
+        Raise:
+            NotYetStarted
         """
         if not self.started:
             raise NotYetStarted()
